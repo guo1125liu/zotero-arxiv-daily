@@ -18,6 +18,7 @@ jobs:
 
       - name: Run script
         env:
+          REQUIRE_STRICT_CURATION: "true"
           ZOTERO_ID: ${{ secrets.ZOTERO_ID }}
           ZOTERO_KEY: ${{ secrets.ZOTERO_KEY }}
           SENDER: ${{ secrets.SENDER }}

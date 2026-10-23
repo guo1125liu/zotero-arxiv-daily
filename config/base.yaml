@@ -52,3 +52,13 @@ executor:
   max_paper_num: 100 # The maximum number of the papers presented in the email. Example: 100
   source: ??? # The sources of papers to retrieve. Example: ['arxiv','biorxiv','medrxiv','chemrxiv']
   reranker: local # The reranker to use. Example: 'local' or 'api'
+
+# Opt-in hard gate. Ranking happens only after the topic and publication checks.
+curation:
+  enabled: false
+  backend: dblp_search
+  allowed_venues: [TPAMI, IJCV, JMLR, AIJ, TIP, NMI, CVPR, ICCV, ECCV, NEURIPS, ICML, ICLR, ACL, EMNLP]
+  timeout_seconds: 15
+  max_retries: 1
+  retry_backoff_seconds: 2
+  max_hits: 10

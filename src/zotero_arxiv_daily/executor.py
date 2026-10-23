@@ -5,6 +5,7 @@ from .utils import glob_match
 from .retriever import get_retriever_cls
 from .protocol import CorpusPaper
 import random
+import os
 from datetime import datetime
 from .reranker import get_reranker_cls
 from .construct_email import render_email
@@ -32,6 +33,10 @@ def normalize_path_patterns(patterns: list[str] | ListConfig | None, config_key:
 class Executor:
     def __init__(self, config:DictConfig):
         self.config = config
+        if os.environ.get("REQUIRE_STRICT_CURATION") == "true" and not config.get("curation", {}).get("enabled", False):
+            raise ValueError("This daily digest requires strict topic and top-venue selection")
+        if config.get("curation", {}).get("enabled", False) and list(config.executor.source) != ["arxiv"]:
+            raise ValueError("Strict curation currently supports only source=[arxiv]; other sources cannot bypass it")
         self.include_path_patterns = normalize_path_patterns(config.zotero.include_path, "include_path")
         self.ignore_path_patterns = normalize_path_patterns(config.zotero.ignore_path, "ignore_path")
         self.retrievers = {
@@ -106,6 +111,11 @@ class Executor:
             logger.info(f"Retrieved {len(papers)} {source} papers")
             all_papers.extend(papers)
         logger.info(f"Total {len(all_papers)} papers retrieved from all sources")
+        if self.config.get("curation", {}).get("enabled", False):
+            for paper in all_papers:
+                evidence = paper.publication or {}
+                if evidence.get("evidence") != "dblp" or not evidence.get("topics") or not evidence.get("verification_url"):
+                    raise ValueError("Refusing to email a paper without verified topic and publication evidence")
         reranked_papers = []
         if len(all_papers) > 0:
             logger.info("Reranking papers...")

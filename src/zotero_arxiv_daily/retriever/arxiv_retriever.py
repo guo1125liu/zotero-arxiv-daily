@@ -2,6 +2,8 @@ from .base import BaseRetriever, register_retriever
 import arxiv
 from arxiv import Result as ArxivResult
 from ..protocol import Paper
+from ..curation import CurationGate
+from ..dblp_sparql import DblpSparqlLookup
 from ..utils import extract_markdown_from_pdf, extract_tex_code_from_tar
 import calendar
 from datetime import datetime, timezone
@@ -211,6 +213,19 @@ def _entry_to_arxiv_result(entry: Any) -> ArxivResult:
 class ArxivRetriever(BaseRetriever):
     def __init__(self, config):
         super().__init__(config)
+        curation_config = config.get("curation", {})
+        backend = curation_config.get("backend", "dblp_search")
+        if backend not in {"dblp_search", "dblp_sparql"}:
+            raise ValueError("Unknown publication verification backend")
+        if curation_config.get("enabled", False) and backend == "dblp_sparql":
+            lookup = DblpSparqlLookup(
+                timeout_seconds=curation_config.get("timeout_seconds", 15),
+                max_retries=curation_config.get("max_retries", 1),
+                retry_backoff_seconds=curation_config.get("retry_backoff_seconds", 2),
+            )
+            self.curation = CurationGate(curation_config, lookup=lookup.lookup)
+        else:
+            self.curation = CurationGate(curation_config)
         if self.config.source.arxiv.category is None:
             raise ValueError("category must be specified for arxiv.")
 
@@ -261,9 +276,6 @@ class ArxivRetriever(BaseRetriever):
             i for i in feed.entries
             if i.get("arxiv_announce_type", "new") in allowed_announce_types
         ]
-        if self.config.executor.debug:
-            target_entries = target_entries[:10]
-
         seen_paper_ids = set()
         raw_papers = []
         for entry in target_entries:
@@ -273,11 +285,28 @@ class ArxivRetriever(BaseRetriever):
                 continue
             if paper_id:
                 seen_paper_ids.add(paper_id)
-            raw_papers.append(_entry_to_arxiv_result(entry))
+            raw_paper = _entry_to_arxiv_result(entry)
+            if self.curation.enabled:
+                evidence = self.curation.qualify(raw_paper)
+                if evidence is None:
+                    continue
+                raw_paper._publication_evidence = evidence
+            raw_papers.append(raw_paper)
+
+        if self.curation.enabled:
+            logger.info(f"Strict topic and venue selection: {self.curation.report}")
+            if self.curation.report.get("lookup_failed", 0):
+                raise RuntimeError("Publication verification was incomplete; no email will be sent. Retry when DBLP is available.")
+        # Debug limits the qualified results, never bypasses the selection gate.
+        if self.config.executor.debug:
+            raw_papers = raw_papers[:10]
 
         return raw_papers
 
     def convert_to_paper(self, raw_paper: ArxivResult) -> Paper:
+        publication = getattr(raw_paper, "_publication_evidence", None)
+        if self.curation.enabled and not publication:
+            raise ValueError("Strict selection requires verified publication evidence before conversion")
         title = raw_paper.title
         authors = [a.name for a in raw_paper.authors]
         abstract = raw_paper.summary
@@ -295,6 +324,7 @@ class ArxivRetriever(BaseRetriever):
             url=raw_paper.entry_id,
             pdf_url=pdf_url,
             full_text=full_text,
+            publication=publication,
         )
 
 

@@ -1,0 +1,24 @@
+name: Preview strict paper selection
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  preview:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v6
+      - uses: astral-sh/setup-uv@v7.1.4
+      - name: Preview selection without sending email
+        env:
+          CUSTOM_CONFIG: ${{ vars.CUSTOM_CONFIG }}
+        run: |
+          printf '%s\n' "$CUSTOM_CONFIG" > config/custom.yaml
+          uv run python scripts/preview_curation.py --config config/custom.yaml --report outputs/curation-preview.json
+      - uses: actions/upload-artifact@v4
+        with:
+          name: curation-preview
+          path: outputs/curation-preview.json

@@ -5,6 +5,8 @@
 
 <h3 align="center">Zotero-arXiv-Daily</h3>
 
+> This fork applies a strict **post-training / visual detection + verified top-venue** filter to the existing daily email job. See [the selection policy and validation workflow](docs/CURATION.md). Preserve these changes when merging upstream; do not force-sync the fork.
+
 <div align="center">
 
   [![Status](https://img.shields.io/badge/status-active-success.svg)]()

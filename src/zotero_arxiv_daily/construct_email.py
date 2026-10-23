@@ -1,5 +1,7 @@
 from .protocol import Paper
 import math
+from html import escape
+from urllib.parse import urlsplit
 
 
 framework = """
@@ -52,7 +54,25 @@ def get_empty_html():
   """
   return block_template
 
-def get_block_html(title:str, authors:str, rate:str, tldr:str, pdf_url:str, affiliations:str=None):
+def _safe_url(value):
+    value = str(value or "")
+    parsed = urlsplit(value)
+    return escape(value, quote=True) if parsed.scheme in {"http", "https"} and parsed.hostname else "#"
+
+
+def get_block_html(title:str, authors:str, rate:str, tldr:str, pdf_url:str, affiliations:str=None, publication:dict=None):
+    publication_html = ""
+    if publication:
+        labels = {"post_training": "后训练", "visual_detection": "视觉检测"}
+        topics = "、".join(labels.get(t, t) for t in publication.get("topics", []))
+        publication_html = (
+            '<tr><td style="font-size:14px;padding:8px 0">'
+            f'<strong>正式发表：</strong>{escape(str(publication.get("venue", "")))} '
+            f'{escape(str(publication.get("year", "")))} · {escape(topics)}<br>'
+            f'<a href="{_safe_url(publication.get("publication_url"))}">正式论文页面</a> · '
+            f'<a href="{_safe_url(publication.get("verification_url"))}">DBLP 出处核验</a>'
+            '</td></tr>'
+        )
     block_template = """
     <table border="0" cellpadding="0" cellspacing="0" width="100%" style="font-family: Arial, sans-serif; border: 1px solid #ddd; border-radius: 8px; padding: 16px; background-color: #f9f9f9;">
     <tr>
@@ -77,6 +97,7 @@ def get_block_html(title:str, authors:str, rate:str, tldr:str, pdf_url:str, affi
             <strong>TLDR:</strong> {tldr}
         </td>
     </tr>
+    {publication_html}
 
     <tr>
         <td style="padding: 8px 0;">
@@ -85,7 +106,11 @@ def get_block_html(title:str, authors:str, rate:str, tldr:str, pdf_url:str, affi
     </tr>
 </table>
 """
-    return block_template.format(title=title, authors=authors,rate=rate, tldr=tldr, pdf_url=pdf_url, affiliations=affiliations)
+    return block_template.format(
+        title=escape(str(title)), authors=escape(str(authors)), rate=escape(str(rate)),
+        tldr=escape(str(tldr or "")), pdf_url=_safe_url(pdf_url),
+        affiliations=escape(str(affiliations or "")), publication_html=publication_html,
+    )
 
 def get_stars(score:float):
     full_star = '<span class="full-star">⭐</span>'
@@ -125,7 +150,7 @@ def render_email(papers:list[Paper]) -> str:
                 affiliations += ', ...'
         else:
             affiliations = 'Unknown Affiliation'
-        parts.append(get_block_html(p.title, authors, rate, p.tldr, p.pdf_url, affiliations))
+        parts.append(get_block_html(p.title, authors, rate, p.tldr, p.pdf_url, affiliations, p.publication))
 
     content = '<br>' + '</br><br>'.join(parts) + '</br>'
     return framework.replace('__CONTENT__', content)
