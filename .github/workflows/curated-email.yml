@@ -1,0 +1,37 @@
+name: Send curated post-training selection
+on:
+  workflow_dispatch:
+    inputs:
+      send:
+        description: Send the reviewed selection to the existing digest recipient
+        type: boolean
+        required: true
+        default: false
+
+permissions:
+  contents: read
+
+concurrency:
+  group: curated-post-training-email
+  cancel-in-progress: false
+
+jobs:
+  curated-email:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v6
+      - name: Render reviewed selection
+        run: python scripts/send_curated.py --manifest selections/post-training-2026-10.json --output-dir outputs/curated-email
+      - name: Send requested email
+        if: inputs.send
+        env:
+          SENDER: ${{ secrets.SENDER }}
+          RECEIVER: ${{ secrets.RECEIVER }}
+          SENDER_PASSWORD: ${{ secrets.SENDER_PASSWORD }}
+        run: python scripts/send_curated.py --manifest selections/post-training-2026-10.json --output-dir outputs/curated-email --send
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: curated-email-receipt
+          path: outputs/curated-email

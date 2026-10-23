@@ -1,0 +1,64 @@
+{
+  "batch_id": "post-training-2026-10",
+  "subject": "后训练论文精选｜Nature + NeurIPS（4篇）",
+  "intro": "这次精选 4 篇直接研究大语言模型后训练的正式论文：1 篇 Nature 顶刊研究论文、3 篇 NeurIPS 顶会主会论文。发表年份为 2022–2025，作为建立研究主线的阅读起点；本批是人工核验的专题精选，并非今日新发表列表。每篇均已核对出版社或会议官方页面。",
+  "reading_order": "InstructGPT（完整流程）→ DPO（直接偏好优化）→ SimPO（简化偏好训练）→ DeepSeek-R1（强化学习推理）。若已经熟悉 SFT/RLHF，可先读 DPO 和 DeepSeek-R1。",
+  "papers": [
+    {
+      "short_title": "InstructGPT：理解 SFT 与 RLHF 的完整流程",
+      "title": "Training language models to follow instructions with human feedback",
+      "authors": "Long Ouyang、Jeffrey Wu、Xu Jiang 等",
+      "venue": "NeurIPS",
+      "year": 2022,
+      "publication_kind": "conference",
+      "topic": "post_training",
+      "publication_url": "https://proceedings.neurips.cc/paper_files/paper/2022/hash/b1efde53be364a73914f58805a001731-Abstract.html",
+      "core": "先用人工示范进行监督微调，再利用人工对回答的排序学习奖励，最后通过强化学习调整模型行为，使回答更符合用户意图。",
+      "why": "适合作为后训练入门的第一篇：把示范数据、偏好数据、奖励模型和策略训练放进同一条完整流程，后续 DPO 等方法可以据此比较。",
+      "focus": "画出 SFT → 奖励模型 → PPO 三阶段流程，分别记下每阶段的数据形式、优化对象和评估方式；特别关注人类偏好与通用能力之间的关系。",
+      "limits": "论文中小模型更受偏好的结论来自其特定提示分布和人工评估，不能推广成小模型在所有任务上更强；对齐后仍会犯错。"
+    },
+    {
+      "short_title": "DPO：把偏好对齐写成直接优化目标",
+      "title": "Direct Preference Optimization: Your Language Model is Secretly a Reward Model",
+      "authors": "Rafael Rafailov、Archit Sharma、Eric Mitchell、Christopher D. Manning、Stefano Ermon、Chelsea Finn",
+      "venue": "NeurIPS",
+      "year": 2023,
+      "publication_kind": "conference",
+      "topic": "post_training",
+      "publication_url": "https://proceedings.neurips.cc/paper_files/paper/2023/hash/a85b405ed65c6477a4fe8302b5e06ce7-Abstract.html",
+      "core": "利用奖励函数与最优策略之间的对应关系，把偏好学习转化为对成对回答的直接优化；训练时无需单独拟合奖励模型，也无需在线采样的强化学习循环。",
+      "why": "这是理解现代离线偏好优化的重要起点，适合拿来构建实验基线，并与传统 RLHF 的训练成本和数据需求比较。",
+      "focus": "理解偏好对、策略模型与参考模型的作用；沿着受约束奖励最大化到 DPO 损失的推导，检查参考策略和超参数如何影响更新。",
+      "limits": "DPO 仍依赖偏好数据和参考模型；原论文在特定对话、摘要等任务上的优势，不意味着它在所有推理或对齐任务上都优于强化学习。"
+    },
+    {
+      "short_title": "SimPO：去掉参考模型后的偏好优化",
+      "title": "SimPO: Simple Preference Optimization with a Reference-Free Reward",
+      "authors": "Yu Meng、Mengzhou Xia、Danqi Chen",
+      "venue": "NeurIPS",
+      "year": 2024,
+      "publication_kind": "conference",
+      "topic": "post_training",
+      "publication_url": "https://proceedings.neurips.cc/paper_files/paper/2024/hash/e099c1c9699814af0be873a175361713-Abstract-Conference.html",
+      "core": "以回答的平均对数概率作为隐式奖励，不再需要参考模型；同时引入目标奖励间隔，拉开优选与较差回答的差距。",
+      "why": "读完 DPO 后接着读这一篇，容易看清训练效率、长度处理与偏好目标之间的关系，也适合做方法对比实验。",
+      "focus": "逐项对照 DPO 与 SimPO 的损失：参考模型、长度归一化和目标间隔；阅读消融实验时留意回答长度对胜率评估的影响。",
+      "limits": "主要证据来自论文采用的模型与聊天评测；减少计算和显存需求并不等于零成本，也不保证迁移到任何任务都保持同样收益。"
+    },
+    {
+      "short_title": "DeepSeek-R1：用强化学习提升推理能力",
+      "title": "DeepSeek-R1 incentivizes reasoning in LLMs through reinforcement learning",
+      "authors": "Daya Guo、Dejian Yang、Haowei Zhang 等，DeepSeek 团队",
+      "venue": "Nature",
+      "year": 2025,
+      "publication_kind": "journal",
+      "topic": "post_training",
+      "publication_url": "https://www.nature.com/articles/s41586-025-09422-z",
+      "core": "R1-Zero 探索在预训练模型上直接开展强化学习；最终 R1 结合冷启动监督数据、强化学习与拒绝采样等阶段，改善推理表现及输出可读性。正式发表于 Nature 645, 633–638，在线发表日期为 2025 年 9 月 17 日。",
+      "why": "它把阅读路线从人类偏好对齐延伸到推理后训练，适合理解可验证奖励、GRPO 和多阶段训练如何配合。",
+      "focus": "区分 R1-Zero 与 R1；重点看图 2 的训练阶段、表 2 的阶段效果，以及 Methods 中的 GRPO 和奖励设计。",
+      "limits": "更适合数学、代码等答案较易验证的任务。开放任务仍面对奖励定义与奖励投机困难；最终 R1 使用监督数据，不能把 R1-Zero 的训练条件套到 R1 上。"
+    }
+  ]
+}
